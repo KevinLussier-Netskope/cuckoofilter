@@ -1,6 +1,15 @@
 Cuckoo Filter
 ============
 
+Netskope changes
+----------------
+This project has been heavily modified from the original. The cuckoo filter code itself
+has not changed much, but all extraneous files and functions have been removed. Furthermore,
+with all of the .cc files removed from the 'src' directory, it has been renamed to 'include'
+and can now be considered a header file only library. Running 'make' will still build the
+'test' app, but there is no longer an archive file built.
+
+
 Overview
 --------
 Cuckoo filter is a Bloom filter replacement for approximated set-membership queries. While Bloom filters are well-known space-efficient data structures to serve queries like "if item x is in a set?", they do not support deletion. Their variances to enable deletion (like counting Bloom filters) usually require much more space.

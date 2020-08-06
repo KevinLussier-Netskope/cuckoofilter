@@ -2,12 +2,8 @@
 #define CUCKOO_FILTER_SINGLE_TABLE_H_
 
 #include <assert.h>
-
 #include <sstream>
-
 #include "bitsutil.h"
-#include "debug.h"
-#include "printutil.h"
 
 namespace cuckoofilter {
 

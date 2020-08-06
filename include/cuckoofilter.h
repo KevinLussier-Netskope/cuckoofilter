@@ -4,11 +4,8 @@
 #include <assert.h>
 #include <algorithm>
 
-#include "debug.h"
-#include "hashutil.h"
-#include "packedtable.h"
-#include "printutil.h"
 #include "singletable.h"
+#include "twoindependentmultiplyshift.h"
 
 namespace cuckoofilter {
 // status returned by a cuckoo filter operation
