@@ -19,6 +19,34 @@ enum Status {
 // maximum number of cuckoo kicks before claiming failure
 const size_t kMaxCuckooCount = 500;
 
+// Base cuckoo filter class
+template <typename ItemType>
+class BaseCuckooFilter
+{
+  public:
+    BaseCuckooFilter() {}
+    virtual ~BaseCuckooFilter() {}
+
+  // Add an item to the filter.
+  virtual Status Add(const ItemType &item) = 0;
+
+  // Report if the item is inserted, with false positive rate.
+  virtual Status Contain(const ItemType &item) const = 0;
+
+  // Delete an key from the filter
+  virtual Status Delete(const ItemType &item) = 0;
+
+  /* methods for providing stats  */
+  // summary infomation
+  virtual std::string Info() const = 0;
+
+  // number of current inserted items;
+  virtual size_t Size() const = 0;
+
+  // size of the filter in bytes.
+  virtual size_t SizeInBytes() const = 0;
+};
+
 // A cuckoo filter class exposes a Bloomier filter interface,
 // providing methods of Add, Delete, Contain. It takes three
 // template parameters:
@@ -29,7 +57,7 @@ const size_t kMaxCuckooCount = 500;
 template <typename ItemType, size_t bits_per_item,
           template <size_t> class TableType = SingleTable,
           typename HashFamily = TwoIndependentMultiplyShift>
-class CuckooFilter {
+class CuckooFilter : public BaseCuckooFilter<ItemType> {
   // Storage of items
   TableType<bits_per_item> *table_;
 
