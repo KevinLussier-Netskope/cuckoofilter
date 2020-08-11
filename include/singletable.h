@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <sstream>
+
 #include "bitsutil.h"
 
 namespace cuckoofilter {
@@ -24,29 +25,46 @@ class SingleTable {
   } __attribute__((__packed__));
 
   // using a pointer adds one more indirection
-  Bucket *buckets_;
-  size_t num_buckets_;
+  Bucket *buckets_ = nullptr;
+  size_t num_buckets_ = 0;
+  bool own_mem_ = true;
 
  public:
   explicit SingleTable(const size_t num) : num_buckets_(num) {
     buckets_ = new Bucket[num_buckets_ + kPaddingBuckets];
     memset(buckets_, 0, kBytesPerBucket * (num_buckets_ + kPaddingBuckets));
+    own_mem_ = true;
+  }
+
+  explicit SingleTable(void *addr, size_t length) {
+    // We were given the memory area to use. Set the buckets pointer and
+    // calculate the number of buckets
+    buckets_ = static_cast<Bucket *>(addr);
+    num_buckets_ = (length / kBytesPerBucket) - kPaddingBuckets;
+    own_mem_ = false;
   }
 
   ~SingleTable() { 
-    delete[] buckets_;
+    if (own_mem_) {
+      delete[] buckets_;
+    }
   }
 
   size_t NumBuckets() const {
     return num_buckets_;
   }
 
-  size_t SizeInBytes() const { 
-    return kBytesPerBucket * num_buckets_; 
+  size_t SizeInBytes() const {
+    return kBytesPerBucket * (num_buckets_ + kPaddingBuckets);
   }
 
   size_t SizeInTags() const { 
     return kTagsPerBucket * num_buckets_; 
+  }
+
+  // raw data of the filter
+  const unsigned char * Data() const {
+    return (unsigned char *)buckets_;
   }
 
   std::string Info() const {
