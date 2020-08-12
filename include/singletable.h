@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <sstream>
+#include <string.h> // for memset
 
 #include "bitsutil.h"
 

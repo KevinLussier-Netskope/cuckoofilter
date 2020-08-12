@@ -120,6 +120,7 @@ int main(int argc, const char **argv)
     case 12: filter = new CuckooFilter<size_t, 12>(total_items); break;
     case 16: filter = new CuckooFilter<size_t, 16>(total_items); break;
     case 32: filter = new CuckooFilter<size_t, 32>(total_items); break;
+    default: filter = new CuckooFilter<size_t, 12>(total_items); break; // Eliminates compiler warning on Linux
   }
   if (!filter->Valid()) {
     std::cout << "Failed to create cuckoo filter with <size_t, " << bits_per_item << "> and " << total_items << " items\n";
