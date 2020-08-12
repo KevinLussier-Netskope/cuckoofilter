@@ -333,9 +333,7 @@ Status CuckooFilter<ItemType, bits_per_item, TableType, HashFamily>::Delete(
 TryEliminateVictim:
   if (victim_.used) {
     victim_.used = false;
-    size_t i = victim_.index;
-    uint32_t tag = victim_.tag;
-    AddImpl(i, tag);
+    AddImpl(victim_.index, victim_.tag);
   }
   return Ok;
 }
