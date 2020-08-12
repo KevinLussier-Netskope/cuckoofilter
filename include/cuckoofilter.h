@@ -77,12 +77,14 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
   } VictimCache;
 
   // The header we will use when we save the filter
-  struct save_header {
+  typedef struct {
+    size_t bits_per_item_;
     size_t num_buckets_;
     size_t num_items_;
+    uint64_t data_size_;
     VictimCache victim_;
     HashFamily hasher_;
-  };
+  } SaveHeader;
 
   VictimCache victim_;
 
@@ -147,12 +149,12 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
   explicit CuckooFilter(void *addr, size_t length) : table_(nullptr), num_items_(0), victim_(), hasher_(), readbuf_(nullptr) {
     // Load the filter from the specified buffer. We will not own the data we
     // read in, so the caller better not free it...
-    struct save_header *sh = reinterpret_cast<struct save_header *>(addr);
+    SaveHeader *sh = reinterpret_cast<SaveHeader *>(addr);
     num_items_ = sh->num_items_;
     victim_ = sh->victim_;
     hasher_ = sh->hasher_;
-    char *data = (char *)addr + sizeof(struct save_header);
-    length = length - sizeof(struct save_header);
+    char *data = (char *)addr + sizeof(SaveHeader);
+    length = length - sizeof(SaveHeader);
     try {
       table_ = new TableType<bits_per_item>(data, length);
     } catch (std::bad_alloc& ba) {
@@ -178,12 +180,12 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
     }
     rf.close();
 
-    struct save_header *sh = reinterpret_cast<struct save_header *>(readbuf_);
+    SaveHeader *sh = reinterpret_cast<SaveHeader *>(readbuf_);
     num_items_ = sh->num_items_;
     victim_ = sh->victim_;
     hasher_ = sh->hasher_;
-    char *data = readbuf_ + sizeof(struct save_header);
-    size_t length = size - sizeof(struct save_header);
+    char *data = readbuf_ + sizeof(SaveHeader);
+    size_t length = size - sizeof(SaveHeader);
     try {
       table_ = new TableType<bits_per_item>(data, length);
     } catch (std::bad_alloc& ba) {
@@ -215,9 +217,11 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
   // save the filter to a file
   bool Save(const std::string path) const {
     // Build the header
-    struct save_header sh;
+    SaveHeader sh;
+    sh.bits_per_item_ = bits_per_item;
     sh.num_buckets_ = table_->NumBuckets();
     sh.num_items_ = Size();
+    sh.data_size_ = table_->SizeInBytes();
     sh.victim_ = victim_;
     sh.hasher_ = hasher_;
 
@@ -241,7 +245,6 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
     // Valid means we have a table loaded
     return table_ != nullptr;
   }
-
 };
 
 template <typename ItemType, size_t bits_per_item,
@@ -354,5 +357,40 @@ std::string CuckooFilter<ItemType, bits_per_item, TableType, HashFamily>::Info()
   }
   return ss.str();
 }
+
+
+static inline bool SavedInfo(const std::string &path, size_t &bits_per_item,
+                             size_t &num_buckets, size_t &num_items,
+                             size_t &data_size) {
+  // Create a structure that matches the beginning of the SaveHeader structure
+  struct hdr {
+    size_t bits_per_item_;
+    size_t num_buckets_;
+    size_t num_items_;
+    uint64_t data_size_;
+  } hdr = {0};
+
+  std::ifstream rf(path, std::ios::in | std::ios::binary | std::ios::ate);
+  if (!rf) {
+    return false;
+  }
+  size_t size = rf.tellg();
+  rf.seekg(0);
+  if (size < sizeof(hdr)) {
+    return false;
+  }
+  if (!rf.read((char *)&hdr, sizeof(hdr))) {
+    return false;
+  }
+  rf.close();
+
+  bits_per_item = hdr.bits_per_item_;
+  num_items = hdr.num_items_;
+  num_buckets = hdr.num_buckets_;
+  data_size = hdr.data_size_;
+
+  return true;
+}
+
 }  // namespace cuckoofilter
 #endif  // CUCKOO_FILTER_CUCKOO_FILTER_H_

@@ -236,5 +236,16 @@ int main(int argc, const char **argv)
   // Close the open file
   close(fd);
 
+  size_t num_buckets, num_items, data_size;
+  if (!cuckoofilter::SavedInfo(filename, bits_per_item, num_buckets, num_items, data_size)) {
+    std::cout << "Failed to get saved info for " << filename << std::endl;
+  } else {
+    std::cout << "Saved filter file information: " << std::endl;
+    std::cout << "  Bits per item: " << bits_per_item << std::endl;
+    std::cout << "  Number of buckets: " << num_buckets << std::endl;
+    std::cout << "  Number of items: " << num_items << std::endl;
+    std::cout << "  Data size: " << data_size << std::endl;
+  }
+
   return 0;
 }
