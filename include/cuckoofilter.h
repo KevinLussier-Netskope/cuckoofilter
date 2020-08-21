@@ -82,8 +82,8 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
     size_t num_buckets_;
     size_t num_items_;
     uint64_t data_size_;
+    unsigned char hash_data_[512];
     VictimCache victim_;
-    HashFamily hasher_;
   } SaveHeader;
 
   VictimCache victim_;
@@ -152,7 +152,7 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
     SaveHeader *sh = reinterpret_cast<SaveHeader *>(addr);
     num_items_ = sh->num_items_;
     victim_ = sh->victim_;
-    hasher_ = sh->hasher_;
+    hasher_.load(sh->hash_data_, sizeof(sh->hash_data_));
     char *data = (char *)addr + sizeof(SaveHeader);
     length = length - sizeof(SaveHeader);
     try {
@@ -183,7 +183,7 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
     SaveHeader *sh = reinterpret_cast<SaveHeader *>(readbuf_);
     num_items_ = sh->num_items_;
     victim_ = sh->victim_;
-    hasher_ = sh->hasher_;
+    hasher_.load(sh->hash_data_, sizeof(sh->hash_data_));
     char *data = readbuf_ + sizeof(SaveHeader);
     size_t length = size - sizeof(SaveHeader);
     try {
@@ -218,15 +218,19 @@ class CuckooFilter : public BaseCuckooFilter<ItemType> {
   bool Save(const std::string path) const {
     // Build the header
     SaveHeader sh;
+    memset(&sh, 0, sizeof(sh));
     sh.bits_per_item_ = bits_per_item;
     sh.num_buckets_ = table_->NumBuckets();
     sh.num_items_ = Size();
     sh.data_size_ = table_->SizeInBytes();
-    sh.victim_ = victim_;
-    sh.hasher_ = hasher_;
+    sh.victim_.index = victim_.index;
+    sh.victim_.tag = victim_.tag;
+    sh.victim_.used = victim_.used;
+    hasher_.save(sh.hash_data_, sizeof(sh.hash_data_));
 
     const unsigned char *data = table_->Data();
     size_t length = table_->SizeInBytes();
+
     std::ofstream wf(path, std::ios::out | std::ios::binary);
     if(!wf) {
       return false;
